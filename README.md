@@ -2,9 +2,25 @@
 
 A cloud-based distributed data processing web application with Spark/PySpark integration for ML jobs, performance benchmarking, and scalability analysis.
 
+## Architecture
+
+This application operates in two modes:
+
+### Local/Development Mode (Default)
+- Uses a **Spark Job Simulator** that runs actual ML algorithms using pandas/numpy
+- Simulates distributed processing by scaling execution time with worker count
+- Perfect for development, testing, and demonstrations without cloud costs
+- No cloud credentials required
+
+### Production/Cloud Mode
+- Deploys real PySpark notebooks to **Databricks** clusters
+- Uses **AWS S3** for persistent cloud storage
+- Actual distributed processing across configurable worker nodes
+- Requires Databricks and AWS credentials
+
 ## Features
 
-- **File Upload**: Support for CSV, JSON, TXT, and PDF files up to 100MB
+- **File Upload**: Support for CSV, JSON, TXT, and PDF files up to 100MB (PDF text extraction included)
 - **Cloud Storage**: S3 integration with local filesystem fallback
 - **Distributed Processing**: Databricks cluster management via REST API
 - **ML Tasks**:

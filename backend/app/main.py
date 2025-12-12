@@ -16,6 +16,7 @@ from .models import (
 from .storage import get_storage
 from .job_manager import job_manager
 from .databricks_service import databricks_service
+from .database import db_store
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -32,8 +33,6 @@ app.add_middleware(
 )
 
 storage = get_storage()
-
-files_db = {}
 
 @app.get("/api/health")
 async def health_check():
@@ -69,6 +68,8 @@ async def upload_file(file: UploadFile = File(...)):
     storage_path = await storage.save_file(content, file.filename, "uploads")
     file_id = storage_path.split('/')[-1].split('.')[0]
     
+    db_store.save_file(file_id, file.filename, ext, file_size, storage_path)
+    
     file_info = FileUploadResponse(
         file_id=file_id,
         filename=file.filename,
@@ -78,24 +79,18 @@ async def upload_file(file: UploadFile = File(...)):
         upload_time=datetime.utcnow()
     )
     
-    files_db[file_id] = {
-        "filename": file.filename,
-        "storage_path": storage_path,
-        "file_type": ext,
-        "file_size": file_size
-    }
-    
     return file_info
 
 @app.get("/api/files")
 async def list_files():
-    return list(files_db.values())
+    return db_store.list_files()
 
 @app.get("/api/files/{file_id}")
 async def get_file_info(file_id: str):
-    if file_id not in files_db:
+    file_data = db_store.get_file(file_id)
+    if not file_data:
         raise HTTPException(status_code=404, detail="File not found")
-    return files_db[file_id]
+    return file_data
 
 @app.get("/api/files/download/{file_path:path}")
 async def download_file(file_path: str):
@@ -109,10 +104,9 @@ async def download_file(file_path: str):
 
 @app.get("/api/files/preview/{file_id}")
 async def preview_file(file_id: str, rows: int = 10):
-    if file_id not in files_db:
+    file_info = db_store.get_file(file_id)
+    if not file_info:
         raise HTTPException(status_code=404, detail="File not found")
-    
-    file_info = files_db[file_id]
     try:
         content = await storage.get_file(file_info["storage_path"])
         
@@ -140,10 +134,10 @@ async def preview_file(file_id: str, rows: int = 10):
 
 @app.post("/api/jobs", response_model=Job)
 async def create_job(config: JobConfig, background_tasks: BackgroundTasks):
-    if config.file_id not in files_db:
+    file_info = db_store.get_file(config.file_id)
+    if not file_info:
         raise HTTPException(status_code=404, detail="File not found")
     
-    file_info = files_db[config.file_id]
     job = await job_manager.create_job(
         file_id=config.file_id,
         filename=file_info["filename"],

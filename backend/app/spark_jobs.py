@@ -1,3 +1,19 @@
+"""
+Spark Job Simulator
+
+This module provides a LOCAL SIMULATION of Spark ML jobs for development and testing.
+For production deployment with real Spark clusters, use the notebooks in /notebooks/
+which contain actual PySpark implementations for Databricks.
+
+The simulator mimics distributed processing behavior by:
+- Scaling execution time inversely with worker count
+- Running actual ML algorithms on the data using pandas/numpy
+- Producing realistic metrics and results
+
+For production: Deploy notebooks/spark_ml_jobs.py to Databricks and configure
+DATABRICKS_HOST and DATABRICKS_TOKEN environment variables.
+"""
+
 import json
 import time
 import random
@@ -6,10 +22,16 @@ import pandas as pd
 import numpy as np
 from typing import Dict, Any, List, Optional
 from datetime import datetime
+from io import StringIO, BytesIO
 from .models import MLTaskType, DescriptiveStats, JobResult, JobStatus
 from .storage import get_storage
 
 class SparkJobSimulator:
+    """
+    Local simulator for Spark ML jobs.
+    Provides development/testing capability without cloud infrastructure.
+    """
+    
     def __init__(self):
         self.storage = get_storage()
     
@@ -18,15 +40,54 @@ class SparkJobSimulator:
         ext = file_path.split('.')[-1].lower()
         
         if ext == 'csv':
-            from io import StringIO
             return pd.read_csv(StringIO(content.decode('utf-8')))
         elif ext == 'json':
-            return pd.read_json(content.decode('utf-8'))
+            try:
+                return pd.read_json(StringIO(content.decode('utf-8')))
+            except:
+                data = json.loads(content.decode('utf-8'))
+                if isinstance(data, list):
+                    return pd.DataFrame(data)
+                return pd.DataFrame([data])
         elif ext == 'txt':
-            from io import StringIO
             return pd.read_csv(StringIO(content.decode('utf-8')), sep='\t')
+        elif ext == 'pdf':
+            return self._extract_pdf_data(content)
         else:
             raise ValueError(f"Unsupported file type: {ext}")
+    
+    def _extract_pdf_data(self, content: bytes) -> pd.DataFrame:
+        """Extract text from PDF and create a DataFrame for analysis."""
+        try:
+            from PyPDF2 import PdfReader
+            reader = PdfReader(BytesIO(content))
+            
+            rows = []
+            for page_num, page in enumerate(reader.pages):
+                text = page.extract_text() or ""
+                lines = [line.strip() for line in text.split('\n') if line.strip()]
+                for line_num, line in enumerate(lines):
+                    words = line.split()
+                    rows.append({
+                        "page": page_num + 1,
+                        "line": line_num + 1,
+                        "text": line,
+                        "word_count": len(words),
+                        "char_count": len(line)
+                    })
+            
+            if not rows:
+                rows = [{"page": 1, "line": 1, "text": "Empty PDF", "word_count": 2, "char_count": 9}]
+            
+            return pd.DataFrame(rows)
+        except Exception as e:
+            return pd.DataFrame([{
+                "page": 1, 
+                "line": 1, 
+                "text": f"PDF extraction error: {str(e)}", 
+                "word_count": 0, 
+                "char_count": 0
+            }])
     
     async def compute_descriptive_stats(self, file_path: str, num_workers: int) -> JobResult:
         start_time = time.time()
