@@ -2,36 +2,49 @@ import os
 from datetime import datetime
 from typing import List
 
-from fastapi import FastAPI, File, UploadFile, HTTPException, BackgroundTasks
+from fastapi import (
+    FastAPI,
+    File,
+    UploadFile,
+    HTTPException,
+    BackgroundTasks
+)
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from .config import settings
 from .models import (
-    Job, JobConfig, JobStatus, MLTaskType,
-    FileUploadResponse, PerformanceMetrics
+    Job,
+    JobConfig,
+    JobStatus,
+    MLTaskType,
+    FileUploadResponse,
+    PerformanceMetrics
 )
 from .storage import get_storage
 from .job_manager import job_manager
 from .databricks_service import databricks_service
 from .database import db_store
 
-# =========================
-# App initialization
-# =========================
+# =====================================================
+# Application initialization
+# =====================================================
 app = FastAPI(
     title=settings.APP_NAME,
-    description="Cloud-based distributed data processing with Spark/PySpark",
+    description=(
+        "Cloud-based distributed data processing platform "
+        "using Apache Spark / PySpark for large-scale ML analytics"
+    ),
     version="1.0.0"
 )
 
-# =========================
-# Middleware
-# =========================
+# =====================================================
+# Middleware (CORS)
+# =====================================================
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],   # For development
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -39,13 +52,14 @@ app.add_middleware(
 
 storage = get_storage()
 
-# =========================
+# =====================================================
 # Root & Health
-# =========================
+# =====================================================
 @app.get("/")
 async def root():
     return {
-        "message": "Spark Cloud API is running",
+        "service": settings.APP_NAME,
+        "status": "running",
         "docs": "/docs",
         "health": "/api/health"
     }
@@ -59,36 +73,50 @@ async def health_check():
         "databricks_configured": databricks_service.is_configured()
     }
 
-# =========================
+# =====================================================
 # File APIs
-# =========================
+# =====================================================
 @app.post("/api/files/upload", response_model=FileUploadResponse)
 async def upload_file(file: UploadFile = File(...)):
     if not file.filename:
-        raise HTTPException(status_code=400, detail="No filename provided")
+        raise HTTPException(status_code=400, detail="No file provided")
 
     ext = file.filename.split(".")[-1].lower()
     if ext not in settings.ALLOWED_EXTENSIONS:
         raise HTTPException(
             status_code=400,
-            detail=f"File type '{ext}' not allowed"
+            detail=f"File type '{ext}' not supported"
         )
 
     content = await file.read()
-    file_size = len(content)
+    size_bytes = len(content)
 
-    if file_size > settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024:
-        raise HTTPException(status_code=400, detail="File too large")
+    if size_bytes > settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024:
+        raise HTTPException(
+            status_code=400,
+            detail="File exceeds maximum allowed size"
+        )
 
-    storage_path = await storage.save_file(content, file.filename, "uploads")
-    file_id = storage_path.split("/")[-1].split(".")[0]
+    storage_path = await storage.save_file(
+        content=content,
+        filename=file.filename,
+        folder="uploads"
+    )
 
-    db_store.save_file(file_id, file.filename, ext, file_size, storage_path)
+    file_id = os.path.basename(storage_path).split(".")[0]
+
+    db_store.save_file(
+        file_id=file_id,
+        filename=file.filename,
+        file_type=ext,
+        file_size=size_bytes,
+        storage_path=storage_path
+    )
 
     return FileUploadResponse(
         file_id=file_id,
         filename=file.filename,
-        file_size=file_size,
+        file_size=size_bytes,
         file_type=ext,
         storage_path=storage_path,
         upload_time=datetime.utcnow()
@@ -99,7 +127,7 @@ async def list_files():
     return db_store.list_files()
 
 @app.get("/api/files/{file_id}")
-async def get_file_info(file_id: str):
+async def get_file(file_id: str):
     file_data = db_store.get_file(file_id)
     if not file_data:
         raise HTTPException(status_code=404, detail="File not found")
@@ -112,14 +140,17 @@ async def download_file(file_path: str):
         raise HTTPException(status_code=404, detail="File not found")
     return FileResponse(full_path)
 
-# =========================
-# Jobs APIs
-# =========================
+# =====================================================
+# Job APIs
+# =====================================================
 @app.post("/api/jobs", response_model=Job)
-async def create_job(config: JobConfig, background_tasks: BackgroundTasks):
+async def create_job(
+    config: JobConfig,
+    background_tasks: BackgroundTasks
+):
     file_info = db_store.get_file(config.file_id)
     if not file_info:
-        raise HTTPException(status_code=404, detail="File not found")
+        raise HTTPException(status_code=404, detail="Uploaded file not found")
 
     job = await job_manager.create_job(
         file_id=config.file_id,
@@ -160,34 +191,54 @@ async def get_job_results(job_id: str):
         raise HTTPException(status_code=404, detail="Job not found")
     return {"results": job.results}
 
-@app.get("/api/jobs/{job_id}/metrics", response_model=List[PerformanceMetrics])
+@app.get(
+    "/api/jobs/{job_id}/metrics",
+    response_model=List[PerformanceMetrics]
+)
 async def get_job_metrics(job_id: str):
     metrics = job_manager.compute_performance_metrics(job_id)
     if not metrics:
-        raise HTTPException(status_code=404, detail="No metrics available")
+        raise HTTPException(
+            status_code=404,
+            detail="No performance metrics available"
+        )
     return metrics
 
-# =========================
-# Tasks & Cluster
-# =========================
+# =====================================================
+# Metadata APIs
+# =====================================================
 @app.get("/api/tasks")
-async def get_available_tasks():
-    return {"tasks": [task.value for task in MLTaskType]}
-
-@app.get("/api/cluster/status")
-async def get_cluster_status():
-    if databricks_service.is_configured():
-        return {
-            "configured": True,
-            "clusters": await databricks_service.list_clusters()
-        }
+async def list_available_tasks():
     return {
-        "configured": False,
-        "message": "Databricks not configured"
+        "tasks": [
+            {
+                "id": task.name,
+                "value": task.value
+            }
+            for task in MLTaskType
+        ]
     }
 
-# =========================
-# Static files (optional)
-# =========================
+@app.get("/api/cluster/status")
+async def cluster_status():
+    if not databricks_service.is_configured():
+        return {
+            "configured": False,
+            "message": "Databricks is not configured"
+        }
+
+    clusters = await databricks_service.list_clusters()
+    return {
+        "configured": True,
+        "clusters": clusters
+    }
+
+# =====================================================
+# Static files (Frontend build)
+# =====================================================
 if os.path.exists("static"):
-    app.mount("/static", StaticFiles(directory="static"), name="static")
+    app.mount(
+        "/static",
+        StaticFiles(directory="static"),
+        name="static"
+    )
