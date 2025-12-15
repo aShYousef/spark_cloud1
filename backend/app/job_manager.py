@@ -12,9 +12,9 @@ from .models import (
     PerformanceMetrics
 )
 
-# ✅ التعديل هنا: اسم الدالة الصحيح
+# ✅ التعديل الأول: تغيير الاسم في الاستيراد
 from .spark_jobs import (
-    compute_descriptive_stats,
+    run_descriptive_statistics,
     run_linear_regression,
     run_logistic_regression,
     run_kmeans,
@@ -157,8 +157,8 @@ class JobManager:
 
         try:
             if task == MLTaskType.DESCRIPTIVE_STATS:
-                # ✅ التعديل هنا
-                metrics = compute_descriptive_stats(file_path, workers)
+                # ✅ التعديل الثاني: استخدام الاسم الجديد للدالة
+                metrics = run_descriptive_statistics(file_path, workers)
 
             elif task == MLTaskType.LINEAR_REGRESSION:
                 metrics = run_linear_regression(
@@ -278,3 +278,4 @@ class JobManager:
 
 # Singleton
 job_manager = JobManager()
+
