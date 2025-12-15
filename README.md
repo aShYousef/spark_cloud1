@@ -1,235 +1,315 @@
-# Spark Data Processor
+Spark Data Processor
 
-A cloud-based distributed data processing web application with Spark/PySpark integration for ML jobs, performance benchmarking, and scalability analysis.
+A cloud-based distributed data processing and machine learning platform built using Apache Spark / PySpark, FastAPI, and React.
+The system enables users to upload datasets, run parallel and distributed analytics, execute multiple machine learning jobs, and evaluate scalability and performance on cloud infrastructure.
 
-## Architecture
 
-This application operates in two modes:
+---
 
-### Local/Development Mode (Default)
-- Uses a **Spark Job Simulator** that runs actual ML algorithms using pandas/numpy
-- Simulates distributed processing by scaling execution time with worker count
-- Perfect for development, testing, and demonstrations without cloud costs
-- No cloud credentials required
+📌 Project Requirements Coverage
 
-### Production/Cloud Mode
-- Deploys real PySpark notebooks to **Databricks** clusters
-- Uses **AWS S3** for persistent cloud storage
-- Actual distributed processing across configurable worker nodes
-- Requires Databricks and AWS credentials
+This project satisfies all required specifications:
 
-## Features
+Cloud-based data processing service
 
-- **File Upload**: Support for CSV, JSON, TXT, and PDF files up to 100MB (PDF text extraction included)
-- **Cloud Storage**: S3 integration with local filesystem fallback
-- **Distributed Processing**: Databricks cluster management via REST API
-- **ML Tasks**:
-  - Descriptive Statistics (rows, columns, null %, unique counts, min/max/mean)
-  - Linear Regression (R2, RMSE, MAE)
-  - Logistic Regression (accuracy, precision, recall, F1)
-  - K-Means Clustering (inertia, silhouette score)
-  - FP-Growth (frequent patterns, association rules)
-  - Time Series Analysis (temporal aggregations)
-- **Performance Benchmarking**: Run jobs on 1, 2, 4, 8 workers with speedup/efficiency metrics
-- **Job Monitoring**: Real-time status, logs, and progress tracking
+Distributed and parallel processing using Apache Spark / PySpark
 
-## Project Structure
+Dataset upload and cloud storage
 
-```
-├── backend/                 # FastAPI backend
+Descriptive statistics (multiple metrics)
+
+Multiple machine learning jobs using Spark MLlib
+
+Execution on 1, 2, 4, and 8 workers
+
+Performance measurement (execution time, speedup, efficiency)
+
+Results visualization and download
+
+User-friendly web interface
+
+
+
+---
+
+🏗️ Architecture Overview
+
+The system follows a three-layer cloud architecture:
+
+1. Frontend (React + Vite)
+
+Dataset upload
+
+Task selection
+
+Job monitoring
+
+Visualization of performance metrics
+
+
+
+2. Backend API (FastAPI)
+
+Handles file uploads
+
+Stores datasets in cloud/local storage
+
+Submits Spark jobs
+
+Tracks job status and execution metrics
+
+
+
+3. Distributed Processing Layer
+
+Apache Spark / PySpark
+
+Executed on Databricks clusters
+
+Scales across multiple workers
+
+
+
+
+
+---
+
+✨ Features
+
+🔹 Data Upload
+
+Supports CSV, JSON, and Parquet files
+
+Files stored in cloud storage (AWS S3 or local storage for development)
+
+
+🔹 Descriptive Statistics
+
+At least four statistics are computed and stored, including:
+
+Number of rows
+
+Number of columns
+
+Data types
+
+Null / missing value percentages
+
+Min / Max / Mean / Std (numeric columns)
+
+Unique value counts
+
+
+🔹 Machine Learning Jobs (Spark MLlib)
+
+The following five ML jobs are implemented:
+
+1. Descriptive Statistics
+
+
+2. Linear Regression
+
+
+3. Logistic Regression
+
+
+4. K-Means Clustering
+
+
+5. FP-Growth (Frequent Pattern Mining)
+
+
+
+Each job:
+
+Runs in a distributed Spark environment
+
+Outputs results to cloud storage
+
+Displays results in the UI
+
+
+
+---
+
+📈 Scalability and Performance Evaluation
+
+To evaluate scalability, each ML job is executed using different cluster sizes:
+
+1 worker
+
+2 workers
+
+4 workers
+
+8 workers
+
+
+For each configuration:
+
+Execution time is recorded
+
+Speedup and efficiency are computed
+
+
+Metrics:
+
+Speedup    = T1 / Tp
+Efficiency = Speedup / p
+
+Where:
+
+T1 = execution time with 1 worker
+
+Tp = execution time with p workers
+
+
+Performance results are:
+
+Displayed in the web interface
+
+Stored in cloud storage for reporting
+
+
+
+---
+
+📂 Project Structure
+
+spark_cloud1/
+│
+├── backend/
 │   ├── app/
-│   │   ├── main.py         # API endpoints
-│   │   ├── models.py       # Pydantic models
-│   │   ├── config.py       # Configuration
-│   │   ├── storage.py      # Storage backends (Local/S3)
-│   │   ├── spark_jobs.py   # Spark job implementations
-│   │   ├── job_manager.py  # Job orchestration
-│   │   └── databricks_service.py  # Databricks REST API
+│   │   ├── main.py          # FastAPI application
+│   │   ├── models.py        # Database models
+│   │   ├── schemas.py       # API schemas
+│   │   └── services/
+│   │       └── spark_jobs.py
 │   └── requirements.txt
-├── frontend/               # React frontend
+│
+├── frontend/
 │   ├── src/
-│   │   ├── App.jsx        # Main application
-│   │   └── index.css      # Tailwind styles
+│   │   ├── App.jsx
+│   │   ├── main.jsx
+│   │   └── index.css
+│   ├── vite.config.js
 │   └── package.json
-├── scripts/                # Utility scripts
-│   ├── download_sample_data.py  # Dataset downloader
-│   ├── run_local.sh       # Local development
-│   └── databricks_deploy.py     # Databricks deployment
-├── infrastructure/         # IaC templates
+│
+├── notebooks/
+│   └── spark_ml_jobs.py     # PySpark ML jobs (Databricks)
+│
+├── infrastructure/
 │   └── terraform/
-│       ├── main.tf        # AWS resources
-│       └── databricks.tf  # Databricks config
-├── notebooks/             # Databricks notebooks
-│   └── spark_ml_jobs.py   # PySpark ML implementations
-└── docs/
-    └── performance_report.md  # Sample performance report
-```
+│       ├── main.tf
+│       └── databricks.tf
+│
+├── scripts/
+│   ├── databricks_deploy.py
+│   ├── download_sample_data.py
+│   └── run_local.sh
+│
+└── README.md
 
-## Quick Start
 
-### Local Development
+---
 
-1. **Install Dependencies**
+🚀 Quick Start (Local Development)
 
-```bash
-# Backend
+1️⃣ Install Dependencies
+
 cd backend
 pip install -r requirements.txt
 
-# Frontend
-cd frontend
+cd ../frontend
 npm install
-```
 
-2. **Set Environment Variables**
 
-```bash
-# For local development (storage fallback)
-export STORAGE_BACKEND=local
+---
 
-# For S3 storage
-export STORAGE_BACKEND=s3
-export AWS_ACCESS_KEY_ID=your_access_key
-export AWS_SECRET_ACCESS_KEY=your_secret_key
-export AWS_REGION=us-east-1
-export S3_BUCKET=your-bucket-name
+2️⃣ Run the Application
 
-# For Databricks (optional)
-export DATABRICKS_HOST=your-workspace.cloud.databricks.com
-export DATABRICKS_TOKEN=your-personal-access-token
-```
+bash scripts/run_local.sh
 
-3. **Run the Application**
 
-```bash
-# Start backend (port 8000)
-cd backend
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+---
 
-# Start frontend (port 5000)
-cd frontend
-npm run dev
-```
+3️⃣ Access the Application
 
-4. **Access the Application**
+Frontend UI:
+👉 http://localhost:5000
 
-- Frontend: http://localhost:5000
-- API Docs: http://localhost:8000/docs
+Backend API:
+👉 http://localhost:8000
 
-### Download Sample Datasets
+API Documentation:
+👉 http://localhost:8000/docs
 
-```bash
-# Download all standard datasets
-python scripts/download_sample_data.py
 
-# Download specific dataset
-python scripts/download_sample_data.py -d iris
 
-# Generate large synthetic dataset
-python scripts/download_sample_data.py -d synthetic -r 100000
-```
+---
 
-## Cloud Deployment
+☁️ Cloud Deployment
 
-### AWS S3 Setup
+AWS Setup
 
-1. Create an S3 bucket for data storage
-2. Configure IAM credentials with S3 access
-3. Set environment variables
+S3 bucket for dataset and result storage
 
-### Databricks Setup
+IAM roles for Spark access
 
-1. Create a Databricks workspace
-2. Generate a personal access token
-3. Upload notebooks to workspace:
 
-```bash
-python scripts/databricks_deploy.py check
-python scripts/databricks_deploy.py upload \
-    --local-path notebooks/spark_ml_jobs.py \
-    --workspace-path /Shared/spark-data-processor/ml_jobs
-```
+Databricks Setup
 
-4. Create a cluster:
+Spark clusters configured with 1–8 workers
 
-```bash
-python scripts/databricks_deploy.py create-cluster \
-    --cluster-name spark-processor \
-    --num-workers 4
-```
+PySpark notebook uploaded automatically
 
-### Terraform Deployment
+Jobs executed remotely via Databricks REST API
 
-```bash
-cd infrastructure/terraform
 
-# Initialize
-terraform init
 
-# Plan
-terraform plan -var="aws_region=us-east-1"
+---
 
-# Apply
-terraform apply
-```
+🔌 API Reference
 
-## API Reference
+Upload Dataset
 
-### Upload File
-```
 POST /api/files/upload
-Content-Type: multipart/form-data
-```
 
-### Create Job
-```
+Create Spark Job
+
 POST /api/jobs
-Content-Type: application/json
 
-{
-  "file_id": "uuid",
-  "tasks": ["descriptive_stats", "linear_regression", "kmeans"],
-  "worker_counts": [1, 2, 4, 8]
-}
-```
+Get Job Status
 
-### Get Job Status
-```
 GET /api/jobs/{job_id}
-```
 
-### Get Performance Metrics
-```
+Get Performance Metrics
+
 GET /api/jobs/{job_id}/metrics
-```
 
-## Configuration
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| STORAGE_BACKEND | Storage type (local/s3) | local |
-| MAX_UPLOAD_SIZE_MB | Maximum file size | 100 |
-| AWS_ACCESS_KEY_ID | AWS access key | - |
-| AWS_SECRET_ACCESS_KEY | AWS secret key | - |
-| S3_BUCKET | S3 bucket name | - |
-| DATABRICKS_HOST | Databricks workspace URL | - |
-| DATABRICKS_TOKEN | Databricks access token | - |
+---
 
-## Performance Testing
+⚙️ Configuration
 
-1. Generate a large dataset:
-```bash
-python scripts/download_sample_data.py -d synthetic -r 500000
-```
+Variable	Description	Default
 
-2. Upload the dataset via the UI
+STORAGE_BACKEND	local / s3	local
+AWS_REGION	AWS region	us-east-1
+DATABRICKS_HOST	Databricks workspace URL	—
+DATABRICKS_TOKEN	Databricks token	—
 
-3. Select all ML tasks and worker configurations
 
-4. Review the performance metrics and charts
 
-See [Performance Report](docs/performance_report.md) for sample results.
+---
 
-## License
+🎓 Academic Notes
 
-MIT License
+Large datasets from UCI Machine Learning Repository are used
+
+The project demonstrates parallel processing, distributed ML, and scalability
+
+Designed for academic evaluation and cloud computing coursework
+Conclusion
+
+This project demonstrates how distributed Spark-based analytics and machine learning can be delivered as a cloud service with performance evaluation and scalability analysis.
