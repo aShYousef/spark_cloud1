@@ -298,18 +298,3 @@ STORAGE_BACKEND	local / s3	local
 AWS_REGION	AWS region	us-east-1
 DATABRICKS_HOST	Databricks workspace URL	—
 DATABRICKS_TOKEN	Databricks token	—
-
-
-
----
-
-🎓 Academic Notes
-
-Large datasets from UCI Machine Learning Repository are used
-
-The project demonstrates parallel processing, distributed ML, and scalability
-
-Designed for academic evaluation and cloud computing coursework
-Conclusion
-
-This project demonstrates how distributed Spark-based analytics and machine learning can be delivered as a cloud service with performance evaluation and scalability analysis.
