@@ -2,9 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
 import axios from 'axios'
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, Legend, ResponsiveContainer,
-  BarChart, Bar
+  BarChart, Bar, XAxis, YAxis,
+  CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts'
 
 const API_BASE = `${import.meta.env.VITE_API_URL}/api`
@@ -26,12 +25,12 @@ function FileUpload({ onFileUploaded }) {
     formData.append('file', acceptedFiles[0])
 
     try {
-      const response = await axios.post(
+      const res = await axios.post(
         `${API_BASE}/files/upload`,
         formData,
         { headers: { 'Content-Type': 'multipart/form-data' } }
       )
-      onFileUploaded(response.data)
+      onFileUploaded(res.data)
     } catch (err) {
       setError(err.response?.data?.detail || 'Upload failed')
     } finally {
@@ -45,11 +44,11 @@ function FileUpload({ onFileUploaded }) {
   })
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
+    <div className="bg-white p-6 rounded shadow">
       <h2 className="text-xl font-semibold mb-4">Upload Dataset</h2>
       <div
         {...getRootProps()}
-        className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer
+        className={`border-2 border-dashed rounded p-8 text-center cursor-pointer
           ${isDragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300'}`}
       >
         <input {...getInputProps()} />
@@ -63,7 +62,7 @@ function FileUpload({ onFileUploaded }) {
 /* =========================
    Task Selector
 ========================= */
-function TaskSelector({ selectedTasks, onTasksChange }) {
+function TaskSelector({ selectedTasks, onChange }) {
   const tasks = [
     'descriptive_stats',
     'linear_regression',
@@ -73,8 +72,8 @@ function TaskSelector({ selectedTasks, onTasksChange }) {
     'time_series'
   ]
 
-  const toggleTask = (task) => {
-    onTasksChange(
+  const toggle = (task) => {
+    onChange(
       selectedTasks.includes(task)
         ? selectedTasks.filter(t => t !== task)
         : [...selectedTasks, task]
@@ -82,16 +81,16 @@ function TaskSelector({ selectedTasks, onTasksChange }) {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
+    <div className="bg-white p-6 rounded shadow">
       <h2 className="text-xl font-semibold mb-4">Tasks</h2>
       <div className="flex flex-wrap gap-2">
         {tasks.map(task => (
           <button
             key={task}
-            onClick={() => toggleTask(task)}
+            onClick={() => toggle(task)}
             className={`px-4 py-2 rounded
               ${selectedTasks.includes(task)
-                ? 'bg-blue-500 text-white'
+                ? 'bg-blue-600 text-white'
                 : 'bg-gray-200'}`}
           >
             {task}
@@ -106,26 +105,21 @@ function TaskSelector({ selectedTasks, onTasksChange }) {
    App
 ========================= */
 export default function App() {
-  const [uploadedFile, setUploadedFile] = useState(null)
-  const [selectedTasks, setSelectedTasks] = useState(['descriptive_stats'])
+  const [file, setFile] = useState(null)
+  const [tasks, setTasks] = useState(['descriptive_stats'])
   const [job, setJob] = useState(null)
   const [metrics, setMetrics] = useState(null)
 
-  /* Poll job status */
   useEffect(() => {
-    if (!job || job.status === 'completed') return
+    if (!job || ['completed', 'failed', 'cancelled'].includes(job.status)) return
 
     const interval = setInterval(async () => {
-      try {
-        const res = await axios.get(`${API_BASE}/jobs/${job.job_id}`)
-        setJob(res.data)
+      const res = await axios.get(`${API_BASE}/jobs/${job.job_id}`)
+      setJob(res.data)
 
-        if (res.data.status === 'completed') {
-          const m = await axios.get(`${API_BASE}/jobs/${job.job_id}/metrics`)
-          setMetrics(m.data)
-        }
-      } catch (e) {
-        console.error(e)
+      if (res.data.status === 'completed') {
+        const m = await axios.get(`${API_BASE}/jobs/${job.job_id}/metrics`)
+        setMetrics(m.data)
       }
     }, 2000)
 
@@ -134,8 +128,8 @@ export default function App() {
 
   const startJob = async () => {
     const res = await axios.post(`${API_BASE}/jobs`, {
-      file_id: uploadedFile.file_id,
-      tasks: selectedTasks,
+      file_id: file.file_id,
+      tasks,
       worker_counts: [1, 2, 4, 8]
     })
     setJob(res.data)
@@ -143,21 +137,17 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <header className="bg-white shadow p-6">
+      <header className="bg-white p-6 shadow">
         <h1 className="text-3xl font-bold">Spark Data Processor</h1>
-        <p className="text-gray-600">Distributed ML Processing</p>
+        <p className="text-gray-600">Distributed & Parallel ML Analytics</p>
       </header>
 
       <main className="max-w-6xl mx-auto p-6 space-y-6">
-        <FileUpload onFileUploaded={setUploadedFile} />
+        <FileUpload onFileUploaded={setFile} />
 
-        {uploadedFile && (
+        {file && (
           <>
-            <TaskSelector
-              selectedTasks={selectedTasks}
-              onTasksChange={setSelectedTasks}
-            />
-
+            <TaskSelector selectedTasks={tasks} onChange={setTasks} />
             <button
               onClick={startJob}
               className="px-6 py-3 bg-blue-600 text-white rounded"
@@ -168,23 +158,26 @@ export default function App() {
         )}
 
         {job && (
-          <div className="bg-white p-6 rounded shadow">
-            <p>Status: <b>{job.status}</b></p>
+          <div className="bg-white p-4 rounded shadow">
+            <b>Status:</b> {job.status}
           </div>
         )}
 
-        {metrics && (
+        {metrics && metrics.length > 0 && (
           <div className="bg-white p-6 rounded shadow">
+            <h3 className="font-semibold mb-2">Execution Time vs Workers</h3>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={metrics[0].execution_times.map((t, i) => ({
-                workers: metrics[0].worker_counts[i],
-                time: t
-              }))}>
+              <BarChart
+                data={metrics[0].worker_counts.map((w, i) => ({
+                  workers: w,
+                  time: metrics[0].execution_times[i]
+                }))}
+              >
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="workers" />
                 <YAxis />
                 <Tooltip />
-                <Bar dataKey="time" fill="#3B82F6" />
+                <Bar dataKey="time" />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -192,4 +185,4 @@ export default function App() {
       </main>
     </div>
   )
-                                                             }
+        }
