@@ -11,4 +11,5 @@ PyPDF2==3.0.1
 python-dotenv==1.0.0
 aiofiles==23.2.1
 httpx==0.25.2
+sqlalchemy
 psycopg2-binary
