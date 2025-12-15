@@ -11,14 +11,17 @@ from .models import (
     MLTaskType,
     PerformanceMetrics
 )
+
+# ✅ التعديل هنا: اسم الدالة الصحيح
 from .spark_jobs import (
-    run_descriptive_statistics,
+    compute_descriptive_stats,
     run_linear_regression,
     run_logistic_regression,
     run_kmeans,
     run_fpgrowth,
     run_time_series
 )
+
 from .database import db_store
 from .databricks_service import databricks_service
 
@@ -154,7 +157,8 @@ class JobManager:
 
         try:
             if task == MLTaskType.DESCRIPTIVE_STATS:
-                metrics = run_descriptive_statistics(file_path, workers)
+                # ✅ التعديل هنا
+                metrics = compute_descriptive_stats(file_path, workers)
 
             elif task == MLTaskType.LINEAR_REGRESSION:
                 metrics = run_linear_regression(
