@@ -28,14 +28,19 @@ function FileUpload({ onFileUploaded }) {
     formData.append('file', acceptedFiles[0])
 
     try {
+      // ✅ لا تضع Content-Type
       const res = await axios.post(
         `${API_BASE}/files/upload`,
-        formData,
-        { headers: { 'Content-Type': 'multipart/form-data' } }
+        formData
       )
       onFileUploaded(res.data)
     } catch (err) {
-      setError(err.response?.data?.detail || 'Upload failed')
+      console.error(err)
+      setError(
+        err.response?.data?.detail ||
+        err.message ||
+        'Upload failed'
+      )
     } finally {
       setUploading(false)
     }
