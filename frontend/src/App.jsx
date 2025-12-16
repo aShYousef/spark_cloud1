@@ -6,7 +6,10 @@ import {
   CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts'
 
-const API_BASE = `${import.meta.env.VITE_API_URL}/api`
+/* =========================
+   API BASE (Render Backend)
+========================= */
+const API_BASE = "https://cloud1.onrender.com/api"
 
 /* =========================
    File Upload
@@ -185,4 +188,4 @@ export default function App() {
       </main>
     </div>
   )
-        }
+}
