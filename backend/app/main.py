@@ -1,5 +1,5 @@
 import os
-import uvicorn  # ✅ تم الإضافة: ضروري لتشغيل السيرفر
+import uvicorn
 from datetime import datetime
 from typing import List
 
@@ -41,12 +41,12 @@ app = FastAPI(
 )
 
 # =====================================================
-# Middleware (CORS)
+# ✅ Middleware (CORS) — FIXED
 # =====================================================
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],   # For development
-    allow_credentials=True,
+    allow_origins=["*"],        # Browser-safe
+    allow_credentials=False,    # ✅ MUST be False with "*"
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -245,11 +245,8 @@ if os.path.exists("static"):
     )
 
 # =====================================================
-# ✅ Main Execution Entry Point (تم الإضافة)
+# Main Entry Point
 # =====================================================
 if __name__ == "__main__":
-    # Render assigns a port dynamically in the PORT environment variable
     port = int(os.environ.get("PORT", 8000))
-    # Host must be 0.0.0.0 to be accessible outside the container
     uvicorn.run(app, host="0.0.0.0", port=port)
-
