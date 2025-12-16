@@ -1,4 +1,5 @@
 import os
+import uvicorn  # ✅ تم الإضافة: ضروري لتشغيل السيرفر
 from datetime import datetime
 from typing import List
 
@@ -242,3 +243,13 @@ if os.path.exists("static"):
         StaticFiles(directory="static"),
         name="static"
     )
+
+# =====================================================
+# ✅ Main Execution Entry Point (تم الإضافة)
+# =====================================================
+if __name__ == "__main__":
+    # Render assigns a port dynamically in the PORT environment variable
+    port = int(os.environ.get("PORT", 8000))
+    # Host must be 0.0.0.0 to be accessible outside the container
+    uvicorn.run(app, host="0.0.0.0", port=port)
+
